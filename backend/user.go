@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
@@ -12,7 +12,7 @@ type User struct {
 	Id                      string `db:"id" json:"id"`
 	Username                string `db:"username" json:"username"`
 	Name                    string `db:"name" json:"name"`
-	WebAuthnId              string `db:"webauthn_id" json:"webauthn_id"`
+	WebAuthnIdB64           string `db:"webauthn_id_b64" json:"webauthn_id_b64"`
 	WebAuthnCredentialsJSON string `db:"webauthn_credentials" json:"webauthn_credentials"`
 }
 
@@ -25,9 +25,13 @@ type User struct {
 // It's recommended this value is completely random and uses the entire 64 bytes.
 //
 // Specification: §5.4.3. User Account Parameters for Credential Generation (https://w3c.github.io/webauthn/#dom-publickeycredentialuserentity-id)
-func (u User) WebAuthnID() []byte {
-	userHash := sha256.Sum256([]byte(u.Id))
-	return userHash[:]
+func (user User) WebAuthnID() []byte {
+	webAuthnId, err := base64.StdEncoding.DecodeString(user.WebAuthnIdB64)
+	if err != nil {
+		fmt.Printf("Could not base64 decode WebAuthnID from database err: %v (base64 id: %v)\n", err, user.WebAuthnIdB64)
+		return []byte{}
+	}
+	return webAuthnId
 }
 
 // WebAuthnName provides the name attribute of the user account during registration and is a human-palatable name for the user
@@ -35,8 +39,8 @@ func (u User) WebAuthnID() []byte {
 // choose this, and SHOULD NOT restrict the choice more than necessary.
 //
 // Specification: §5.4.3. User Account Parameters for Credential Generation (https://w3c.github.io/webauthn/#dictdef-publickeycredentialuserentity)
-func (u User) WebAuthnName() string {
-	return u.Username
+func (user User) WebAuthnName() string {
+	return user.Username
 }
 
 // WebAuthnDisplayName provides the name attribute of the user account during registration and is a human-palatable
@@ -44,47 +48,24 @@ func (u User) WebAuthnName() string {
 // SHOULD let the user choose this, and SHOULD NOT restrict the choice more than necessary.
 //
 // Specification: §5.4.3. User Account Parameters for Credential Generation (https://www.w3.org/TR/webauthn/#dom-publickeycredentialuserentity-displayname)
-func (u User) WebAuthnDisplayName() string {
-	return u.Name
+func (user User) WebAuthnDisplayName() string {
+	if user.Name == "" {
+		return user.WebAuthnName()
+	}
+	return user.Name
 }
 
 // WebAuthnCredentials provides the list of Credential objects owned by the user.
 func (user User) WebAuthnCredentials() []webauthn.Credential {
-	/* user.WebAuthnCredentialsJSON: string
-	{
-		"ID": "7uYw/HdkaM/LRKUt10Cij109NVA=",
-		"PublicKey": "pQECAyYgASFYIGWuzTIC8JPXKzGWWjUE7298wsJ8LSaoo7EfBTmEqLJiIlgg5GTk3v7PgDbv/ib3+CuV2q66+Ctl+WIZu3dF/I7tGmc=",
-		"AttestationType": "none",
-		"Transport": [
-			"internal",
-			"hybrid"
-		],
-		"Flags": {
-			"UserPresent": true,
-			"UserVerified": true,
-			"BackupEligible": true,
-			"BackupState": true
-		},
-		"Authenticator": {
-			"AAGUID": "AAAAAAAAAAAAAAAAAAAAAA==",
-			"SignCount": 0,
-			"CloneWarning": false,
-			"Attachment": "platform"
-		}
-		}
-	}
-	*/
-
-	fmt.Printf("user.WebAuthnCredentialsJSON: %T %v\n", user.WebAuthnCredentialsJSON, user.WebAuthnCredentialsJSON)
-
+	// decode string from database into credential object
 	credential := webauthn.Credential{}
 	err := json.Unmarshal([]byte(user.WebAuthnCredentialsJSON), &credential)
 	if err != nil {
-		fmt.Printf("unmarshal credential from db: err: %v\n", err)
+		fmt.Printf("error while unmarshalling credential from db: %v\n", err)
 		return []webauthn.Credential{}
 	}
-	fmt.Printf("credential from db: %v\n", credential)
 
+	// NOTE: database currently only stores a single credential per user.
 	credentials := []webauthn.Credential{credential}
 	return credentials
 }

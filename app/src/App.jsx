@@ -7,18 +7,16 @@ import { pocketbase } from "./pocketbase_singleton"
 export async function registrationAction({ params, request }) {
   const data = Object.fromEntries(await request.formData())
   console.log("beginRegistrationAction data", data)
-  const publicKeyCredentialCreationOptions = await pocketbase.send("/webauthn-begin-registration", {
-    method: "POST",
-    query: data
+  const publicKeyCredentialCreationOptions = await pocketbase.send(`/webauthn-begin-registration/${btoa(data.username)}`, {
+    method: "POST"
   })
   console.log("publicKeyCredentialCreationOptions", publicKeyCredentialCreationOptions)
 
   const credential = await createCredential(parseCreationOptionsFromJSON(publicKeyCredentialCreationOptions))
-  console.log("finishRegistration: send credential", credential)
+  console.log("finishRegistration: send credential", credential.toJSON())
 
-  const finalResult = await pocketbase.send("/webauthn-finish-registration", {
+  const finalResult = await pocketbase.send(`/webauthn-finish-registration/${btoa(data.username)}`, {
     method: "POST",
-    //query: data,
     body: credential
   })
   console.log("beginRegistrationAction finalResult", finalResult)
@@ -30,16 +28,15 @@ export async function loginAction({ params, request }) {
   const data = Object.fromEntries(await request.formData())
   console.log("loginAction data", data)
 
-  const publicKeyCredentialRequestOptions = await pocketbase.send("/webauthn-begin-login", {
-    method: "POST",
-    query: data
+  const publicKeyCredentialRequestOptions = await pocketbase.send(`/webauthn-begin-login/${btoa(data.username)}`, {
+    method: "POST"
   })
   console.log("publicKeyCredentialRequestOptions", publicKeyCredentialRequestOptions)
   
   const assertion = await getCredential(parseRequestOptionsFromJSON(publicKeyCredentialRequestOptions))
   console.log("finishLogin: send assertion", assertion)
 
-  const finalResult = await pocketbase.send("/webauthn-finish-login", {
+  const finalResult = await pocketbase.send(`/webauthn-finish-login/${btoa(data.username)}`, {
     method: "POST",
     //query: data,
     body: assertion
