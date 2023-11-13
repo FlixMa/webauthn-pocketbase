@@ -69,7 +69,7 @@ export default function App() {
   return (
     <Flex w={"100vw"} h={"100vh"} p={5} direction={'column'} gap={10}>
       <Heading alignSelf={'center'}>WebAuthn + Pocketbase</Heading>
-      <Flex w={'100%'} gap={5} justify={'space-around'}>
+      <Flex direction={{base: 'column', sm: 'row'}} w={'100%'} gap={5} justify={'space-around'}>
         <registrationFetcher.Form method="post" action="/webauthn-registration">
           <Flex direction="column" p={10} gap={5} bg={'gray.700'} borderRadius={'md'}>
             <Heading size={'sm'}>Registration:</Heading>
@@ -89,10 +89,10 @@ export default function App() {
 
       { user &&
       <Flex p={5} direction={'column'} gap={10}>
-          <HStack><Text fontWeight={'bold'}>Username:</Text><Text>{user.username}</Text></HStack>
-          <HStack><Text fontWeight={'bold'}>Name:</Text><Text>{user.name}</Text></HStack>
-          <HStack><Text fontWeight={'bold'}>WebAuthn ID:</Text><Text wordBreak={'break-all'}>{user.webauthn_id_b64}</Text></HStack>
-          <HStack><Text fontWeight={'bold'}>WebAuthn Credentials:</Text><Text wordBreak={'break-all'}>{JSON.stringify(user.webauthn_credentials)}</Text></HStack>
+          <Flex direction={{base: 'column', md: 'row'}}><Text fontWeight={'bold'}>Username:</Text><Text>{user.username}</Text></Flex>
+          <Flex direction={{base: 'column', md: 'row'}}><Text fontWeight={'bold'}>Name:</Text><Text>{user.name}</Text></Flex>
+          <Flex direction={{base: 'column', md: 'row'}}><Text fontWeight={'bold'}>WebAuthn ID:</Text><Text wordBreak={'break-all'}>{user.webauthn_id_b64}</Text></Flex>
+          <Flex direction={{base: 'column', md: 'row'}}><Text fontWeight={'bold'}>WebAuthn Credentials:</Text><Text wordBreak={'break-all'}>{JSON.stringify(user.webauthn_credentials)}</Text></Flex>
           <Button onClick={() => {
             pocketbase.authStore.clear()
             revalidate()
