@@ -1,4 +1,4 @@
-import { Button, Center, Flex, Input, Text, VStack } from "@chakra-ui/react"
+import { Button, Flex, Heading, Input } from "@chakra-ui/react"
 import { useFetcher } from "react-router-dom"
 import { create as createCredential, parseCreationOptionsFromJSON, get as getCredential, parseRequestOptionsFromJSON } from "@github/webauthn-json/browser-ponyfill"
 
@@ -51,26 +51,27 @@ export default function App() {
   const loginFetcher = useFetcher()
 
   return (
-    <Center p={5}>
-      <VStack spacing={5}>
-        <Text>Hello :-)</Text>
-        <Flex gap={5}>
-          <Flex direction="column">
-            <registrationFetcher.Form method="post" action="/webauthn-registration">
-              <Text>Register :-)</Text>
-              <Input name="username" type="text" />
+    <Flex w={"100vw"} h={"100vh"} p={5} direction={'column'} gap={10}>
+      <Heading alignSelf={'center'}>WebAuthn + Pocketbase</Heading>
+      <Flex w={'100%'} gap={5} justify={'space-around'}>
+          
+          <registrationFetcher.Form method="post" action="/webauthn-registration">
+            <Flex direction="column" p={10} gap={5} bg={'gray.700'} borderRadius={'md'}>
+              <Heading size={'sm'}>Registration:</Heading>
+              <Input name="username" type="text" placeholder="Username" />
               <Button type="submit">Register</Button>
-            </registrationFetcher.Form>
-          </Flex>
-          <Flex direction="column">
-            <loginFetcher.Form method="post" action="/webauthn-login">
-              <Text>Login :-)</Text>
-              <Input name="username" type="text" />
+            </Flex>
+          </registrationFetcher.Form>
+        
+          <loginFetcher.Form method="post" action="/webauthn-login">
+            <Flex direction="column" p={10} gap={5} bg={'gray.700'} borderRadius={'md'}>
+              <Heading size={'sm'}>Login:</Heading>
+              <Input name="username" type="text" placeholder="Username" />
               <Button type="submit">Login</Button>
-            </loginFetcher.Form>
-          </Flex>
+            </Flex>
+          </loginFetcher.Form>
+        
         </Flex>
-      </VStack>
-    </Center>
+    </Flex>
   )
 }
