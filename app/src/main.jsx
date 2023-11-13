@@ -3,13 +3,14 @@ import ReactDOM from 'react-dom/client'
 import { ChakraProvider, ColorModeScript, extendTheme } from '@chakra-ui/react'
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
-import App, { registrationAction, loginAction } from './App.jsx'
+import App, { registrationAction, loginAction, userLoader } from './App.jsx'
 import theme, { config as themeConfig } from './theme.js'
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
+    loader: userLoader,
     children: [
       {
         path: 'webauthn-registration',

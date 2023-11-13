@@ -1,10 +1,11 @@
-import { Button, Flex, Heading, Input } from "@chakra-ui/react"
-import { useFetcher } from "react-router-dom"
+import { Button, Flex, HStack, Heading, Input, Text } from "@chakra-ui/react"
+import { useFetcher, useLoaderData, useRevalidator } from "react-router-dom"
 import { create as createCredential, parseCreationOptionsFromJSON, get as getCredential, parseRequestOptionsFromJSON } from "@github/webauthn-json/browser-ponyfill"
 
 import { pocketbase } from "./pocketbase_singleton"
+import { useEffect } from "react"
 
-export async function registrationAction({ params, request }) {
+export async function registrationAction({ request }) {
   const data = Object.fromEntries(await request.formData())
   console.log("beginRegistrationAction data", data)
   const publicKeyCredentialCreationOptions = await pocketbase.send(`/webauthn-begin-registration/${btoa(data.username)}`, {
@@ -24,7 +25,7 @@ export async function registrationAction({ params, request }) {
   return finalResult
 }
 
-export async function loginAction({ params, request }) {
+export async function loginAction({ request }) {
   const data = Object.fromEntries(await request.formData())
   console.log("loginAction data", data)
 
@@ -43,35 +44,62 @@ export async function loginAction({ params, request }) {
   })
   console.log("beginRegistrationAction finalResult", finalResult)
 
+  pocketbase.authStore.save(finalResult.token, finalResult.user)
   return finalResult
 }
 
+export async function userLoader() {
+  return { user: pocketbase.authStore.model }
+}
+
 export default function App() {
+  const { user } = useLoaderData()
+  const { revalidate } = useRevalidator()
   const registrationFetcher = useFetcher()
   const loginFetcher = useFetcher()
+  console.log(user)
+  useEffect(() => {
+    pocketbase.collection('users').subscribe("*", async (_) => {
+      revalidate()
+    })
+    return () => pocketbase.collection('users').unsubscribe()
+  }, [])
+  
 
   return (
     <Flex w={"100vw"} h={"100vh"} p={5} direction={'column'} gap={10}>
       <Heading alignSelf={'center'}>WebAuthn + Pocketbase</Heading>
       <Flex w={'100%'} gap={5} justify={'space-around'}>
-          
-          <registrationFetcher.Form method="post" action="/webauthn-registration">
-            <Flex direction="column" p={10} gap={5} bg={'gray.700'} borderRadius={'md'}>
-              <Heading size={'sm'}>Registration:</Heading>
-              <Input name="username" type="text" placeholder="Username" />
-              <Button type="submit">Register</Button>
-            </Flex>
-          </registrationFetcher.Form>
-        
-          <loginFetcher.Form method="post" action="/webauthn-login">
-            <Flex direction="column" p={10} gap={5} bg={'gray.700'} borderRadius={'md'}>
-              <Heading size={'sm'}>Login:</Heading>
-              <Input name="username" type="text" placeholder="Username" />
-              <Button type="submit">Login</Button>
-            </Flex>
-          </loginFetcher.Form>
-        
-        </Flex>
+        <registrationFetcher.Form method="post" action="/webauthn-registration">
+          <Flex direction="column" p={10} gap={5} bg={'gray.700'} borderRadius={'md'}>
+            <Heading size={'sm'}>Registration:</Heading>
+            <Input name="username" type="text" placeholder="Username" />
+            <Button type="submit">Register</Button>
+          </Flex>
+        </registrationFetcher.Form>
+      
+        <loginFetcher.Form method="post" action="/webauthn-login">
+          <Flex direction="column" p={10} gap={5} bg={'gray.700'} borderRadius={'md'}>
+            <Heading size={'sm'}>Login:</Heading>
+            <Input name="username" type="text" placeholder="Username" />
+            <Button type="submit">Login</Button>
+          </Flex>
+        </loginFetcher.Form>
+      </Flex>
+
+      { user &&
+      <Flex p={5} direction={'column'} gap={10}>
+          <HStack><Text fontWeight={'bold'}>Username:</Text><Text>{user.username}</Text></HStack>
+          <HStack><Text fontWeight={'bold'}>Name:</Text><Text>{user.name}</Text></HStack>
+          <HStack><Text fontWeight={'bold'}>WebAuthn ID:</Text><Text wordBreak={'break-all'}>{user.webauthn_id_b64}</Text></HStack>
+          <HStack><Text fontWeight={'bold'}>WebAuthn Credentials:</Text><Text wordBreak={'break-all'}>{JSON.stringify(user.webauthn_credentials)}</Text></HStack>
+          <Button onClick={() => {
+            pocketbase.authStore.clear()
+            revalidate()
+          }}>Logout</Button>
+      </Flex>
+      }
+      
     </Flex>
   )
 }
