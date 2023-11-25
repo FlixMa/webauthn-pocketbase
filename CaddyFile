@@ -1,0 +1,22 @@
+{
+	log {
+		output stdout
+		format console
+		level DEBUG
+	}
+
+	admin :2019
+}
+
+localhost {
+	file_server browse
+}
+hello.localhost {
+	respond "Hello world!"
+}
+pb.localhost {
+	reverse_proxy :5173
+}
+pb-admin.localhost {
+	reverse_proxy :8090
+}
